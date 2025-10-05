@@ -262,8 +262,7 @@ textarea {
 }
 .hexagrams-display {
   display: flex;
-  justify-content: center;
-  gap: 3rem;
+  justify-content: space-evenly;
   margin-bottom: 2rem;
 }
 .hexagram-container {
@@ -455,7 +454,6 @@ textarea {
     }
     .hexagrams-display {
         flex-direction: row;
-        gap: 1.5rem;
         align-items: flex-start;
     }
     .hexagram-container {
