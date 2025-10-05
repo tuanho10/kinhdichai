@@ -237,24 +237,92 @@ textarea {
 
 /* Casting Screen */
 .casting-screen {
-  text-align: center;
-}
-.casting-screen p {
-  font-size: 1.2rem;
-  margin-bottom: 2rem;
-}
-.casting-animation {
-  min-height: 200px;
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
   justify-content: center;
-  font-size: 1.5rem;
+  width: 100%;
+  gap: 2rem;
+}
+
+.casting-screen-header {
+    position: absolute;
+    top: 2rem;
+    left: 2rem;
+    right: 2rem;
+    text-align: center;
+}
+
+.casting-animation-container, .casting-result-container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 300px;
+    padding: 2rem;
+}
+
+.casting-result-container .step {
+  margin-top: 2rem;
+  font-size: 1.2rem;
   color: var(--secondary-color);
 }
-.casting-animation .step {
-  margin: 0.5rem 0;
+
+/* Yarrow Stalk Animation */
+.yarrow-stalks-container {
+    width: 250px;
+    height: 200px;
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
+
+.yarrow-stalk {
+    width: 2px;
+    height: 80px;
+    background-color: var(--secondary-color);
+    position: absolute;
+    transition: transform 0.8s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.6s ease;
+    transform-origin: bottom center;
+    transform: var(--initial-transform);
+    opacity: 1;
+}
+
+/* Active state to "draw" stalks by moving them up and fading them out */
+.yarrow-stalks-container.active .yarrow-stalk:nth-child(4n + 1) {
+    transform: var(--initial-transform) translateY(-50px);
+    opacity: 0;
+}
+.yarrow-stalks-container.active .yarrow-stalk:nth-child(7n + 3) {
+    transform: var(--initial-transform) translateY(-60px) rotate(5deg);
+    opacity: 0;
+}
+
+
+/* Plum Blossom Animation */
+.plum-blossom-animation {
+    text-align: center;
+}
+.plum-blossom-calculation {
+    font-size: 1.2rem;
+    line-height: 1.8;
+}
+.plum-blossom-calculation span {
+    color: var(--primary-color);
+    font-weight: bold;
+}
+
+.plum-blossom-calculation .random-number {
+    display: inline-block;
+    color: var(--highlight-color);
+    font-weight: bold;
+    min-width: 40px;
+    text-align: right;
+    padding-right: 5px;
+}
+
 
 /* Result Screen */
 .result-screen {
@@ -436,6 +504,15 @@ textarea {
   }
 }
 
+@keyframes plumFadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes plumPopIn {
+  from { transform: scale(0.5); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
 /* Responsive */
 @media (max-width: 768px) {
     .app-container {
@@ -451,6 +528,24 @@ textarea {
     .method-selection {
         flex-direction: column;
         gap: 1rem;
+    }
+    .casting-screen {
+        flex-direction: row;
+        align-items: stretch;
+        padding-top: 4rem; /* space for header */
+        gap: 0.5rem;
+    }
+    .casting-animation-container, .casting-result-container {
+        width: 50%;
+        min-height: auto;
+        padding: 1rem 0.5rem;
+    }
+    .yarrow-stalks-container {
+        transform: scale(0.75);
+    }
+    .plum-blossom-calculation {
+        font-size: 1rem;
+        line-height: 1.6;
     }
     .hexagrams-display {
         flex-direction: row;

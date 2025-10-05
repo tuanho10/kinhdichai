@@ -39,6 +39,7 @@
       const API_KEY = (typeof process !== 'undefined' && process.env) ? process.env.API_KEY : undefined;
 
       type LineValue = 6 | 7 | 8 | 9;
+      type LineType = 'yang' | 'yin';
       type Trigram = 'Càn' | 'Khảm' | 'Cấn' | 'Chấn' | 'Tốn' | 'Ly' | 'Khôn' | 'Đoài';
 
       interface HexagramData {
@@ -71,15 +72,30 @@
         date: string;
         aiInterpretation: AiInterpretation;
       }
+      
+      interface MaiHoaCalculation {
+        upperNum: number;
+        lowerNum: number;
+        movingNum: number;
+        upperTrigram: Trigram;
+        lowerTrigram: Trigram;
+        movingLineIndex: number; // 0-5
+      }
 
       const trigramMap: { [key: string]: Trigram } = {
         '111': 'Càn', '010': 'Khảm', '100': 'Cấn', '001': 'Chấn',
         '110': 'Tốn', '101': 'Ly', '000': 'Khôn', '011': 'Đoài'
       };
 
-      const trigramToNumber: { [key in Trigram]: number } = {
-        'Càn': 1, 'Đoài': 2, 'Ly': 3, 'Chấn': 4,
-        'Tốn': 5, 'Khảm': 6, 'Cấn': 7, 'Khôn': 8
+      const numberToTrigramData: { [key: number]: { name: Trigram, lines: LineType[] } } = {
+        1: { name: 'Càn', lines: ['yang', 'yang', 'yang'] },
+        2: { name: 'Đoài', lines: ['yin', 'yang', 'yang'] },
+        3: { name: 'Ly', lines: ['yang', 'yin', 'yang'] },
+        4: { name: 'Chấn', lines: ['yin', 'yin', 'yang'] },
+        5: { name: 'Tốn', lines: ['yang', 'yang', 'yin'] },
+        6: { name: 'Khảm', lines: ['yin', 'yang', 'yin'] },
+        7: { name: 'Cấn', lines: ['yang', 'yin', 'yin'] },
+        8: { name: 'Khôn', lines: ['yin', 'yin', 'yin'] },
       };
 
       const HEXAGRAM_DATA: HexagramData[] = [
@@ -121,10 +137,10 @@
 
       // --- HELPER FUNCTIONS ---
 
-      const getLineType = (value: LineValue): 'yang' | 'yin' => (value === 7 || value === 9) ? 'yang' : 'yin';
+      const getLineTypeFromValue = (value: LineValue): LineType => (value === 7 || value === 9) ? 'yang' : 'yin';
       const isMovingLine = (value: LineValue): boolean => value === 6 || value === 9;
 
-      const getHexagramFromLines = (lines: ('yang' | 'yin')[]): HexagramData | undefined => {
+      const getHexagramFromLines = (lines: LineType[]): HexagramData | undefined => {
           if (lines.length !== 6) return undefined;
           const lowerTrigramKey = lines.slice(0, 3).map(l => l === 'yang' ? '1' : '0').join('');
           const upperTrigramKey = lines.slice(3, 6).map(l => l === 'yang' ? '1' : '0').join('');
@@ -156,7 +172,7 @@
       };
 
       const processLines = (lines: LineValue[]) => {
-          const primaryLines = lines.map(getLineType);
+          const primaryLines = lines.map(getLineTypeFromValue);
           const movingLinesIndices = lines.map((l, i) => isMovingLine(l) ? i : -1).filter(i => i !== -1);
           
           const primaryHexagram = getHexagramFromLines(primaryLines);
@@ -240,13 +256,48 @@
 
       // --- COMPONENTS ---
 
-      const Line: React.FC<{ type: 'yang' | 'yin', isMoving: boolean }> = ({ type, isMoving }) => (
+      const RollingNumber: React.FC<{ target: number }> = ({ target }) => {
+          const numberRef = React.useRef<HTMLSpanElement>(null);
+
+          useEffect(() => {
+              if (!numberRef.current) return;
+
+              let frameId: number;
+              const duration = 1500; // Animate for 1.5 seconds
+              const startTime = performance.now();
+
+              const animate = (currentTime: number) => {
+                  const elapsedTime = currentTime - startTime;
+
+                  if (elapsedTime < duration) {
+                      if (numberRef.current) {
+                          numberRef.current.textContent = String(Math.floor(Math.random() * 100) + 1);
+                      }
+                      frameId = requestAnimationFrame(animate);
+                  } else {
+                      if (numberRef.current) {
+                          numberRef.current.textContent = String(target);
+                      }
+                  }
+              };
+
+              frameId = requestAnimationFrame(animate);
+
+              return () => {
+                  cancelAnimationFrame(frameId);
+              };
+          }, [target]);
+          
+          return <span ref={numberRef} className="random-number">0</span>;
+      };
+
+      const Line: React.FC<{ type: LineType, isMoving: boolean }> = ({ type, isMoving }) => (
           <div className={`line line-${type} ${isMoving ? 'moving' : ''}`}>
               {isMoving && <span className="dynamic-badge">ĐỘNG</span>}
           </div>
       );
 
-      const Hexagram: React.FC<{ lines: ('yang' | 'yin')[], movingIndices: number[] }> = ({ lines, movingIndices }) => (
+      const Hexagram: React.FC<{ lines: LineType[], movingIndices: number[] }> = ({ lines, movingIndices }) => (
           <div className="hexagram">
               {lines.map((type, i) => (
                   <Line key={i} type={type} isMoving={movingIndices.includes(i)} />
@@ -300,65 +351,164 @@
               </div>
           );
       };
+      
+      const YarrowStalkAnimation: React.FC<{ active: boolean }> = ({ active }) => {
+        const stalks = useMemo(() => {
+            return Array.from({ length: 50 }).map((_, i) => {
+                const xPos = (i - 24.5) * 4.5; // Spread them out horizontally
+                const randomRotate = (Math.random() - 0.5) * 15; // Give a slight, natural tilt
+                const randomY = Math.random() * 5; // Slight vertical variation
+                return {
+                    '--initial-transform': `translateX(${xPos}px) translateY(${randomY}px) rotate(${randomRotate}deg)`,
+                };
+            });
+        }, []);
+
+        return (
+            <div className={`yarrow-stalks-container ${active ? 'active' : ''}`}>
+                {stalks.map((style, i) => (
+                    <div
+                        key={i}
+                        className="yarrow-stalk"
+                        style={style}
+                    />
+                ))}
+            </div>
+        );
+      };
+
+      const PlumBlossomAnimation: React.FC<{ calculation: MaiHoaCalculation | null }> = ({ calculation }) => {
+          if (!calculation) {
+              return null;
+          }
+          const { upperNum, lowerNum, movingNum } = calculation;
+          return (
+              <div className="plum-blossom-animation">
+                  <div className="plum-blossom-calculation">
+                      <p><RollingNumber target={upperNum} /> % 8 = <span>{upperNum % 8 || 8}</span></p>
+                      <p><RollingNumber target={lowerNum} /> % 8 = <span>{lowerNum % 8 || 8}</span></p>
+                      <p><RollingNumber target={movingNum} /> % 6 = <span>{movingNum % 6 || 6}</span></p>
+                  </div>
+              </div>
+          );
+      };
+
 
       const CastingScreen: React.FC<{ method: 'Cỏ Thi' | 'Mai Hoa', onComplete: (lines: LineValue[]) => void }> = ({ method, onComplete }) => {
-          const [lines, setLines] = useState<LineValue[]>([]);
+          const [displayLines, setDisplayLines] = useState<LineValue[]>([]);
           const [stepMessage, setStepMessage] = useState('');
+          const [isAnimating, setIsAnimating] = useState(false);
+          const [maiHoaCalc, setMaiHoaCalc] = useState<MaiHoaCalculation | null>(null);
 
           useEffect(() => {
-              const cast = () => {
-                  let currentLines: LineValue[] = [];
-                  const interval = setInterval(() => {
-                      if (currentLines.length >= 6) {
-                          clearInterval(interval);
-                          onComplete(currentLines);
+              let maiHoaTimeout1: number;
+              let maiHoaTimeout2: number;
+              let coThiInterval: number;
+
+              if (method === 'Mai Hoa') {
+                  const upperNum = Math.floor(Math.random() * 100) + 1;
+                  const lowerNum = Math.floor(Math.random() * 100) + 1;
+                  const movingNum = Math.floor(Math.random() * 100) + 1;
+
+                  const upperTrigramKey = upperNum % 8 || 8;
+                  const lowerTrigramKey = lowerNum % 8 || 8;
+                  const movingLineIndex = (movingNum % 6 || 6) - 1;
+
+                  const calc: MaiHoaCalculation = {
+                      upperNum, lowerNum, movingNum,
+                      upperTrigram: numberToTrigramData[upperTrigramKey].name,
+                      lowerTrigram: numberToTrigramData[lowerTrigramKey].name,
+                      movingLineIndex,
+                  };
+                  setMaiHoaCalc(calc);
+
+                  const lowerLines = numberToTrigramData[lowerTrigramKey].lines;
+                  const upperLines = numberToTrigramData[upperTrigramKey].lines;
+                  const primaryHexagramLines: LineType[] = [...lowerLines, ...upperLines];
+
+                  const finalLines = primaryHexagramLines.map((type, i) => {
+                      return i === movingLineIndex
+                          ? (type === 'yang' ? 9 : 6)
+                          : (type === 'yang' ? 7 : 8);
+                  }) as LineValue[];
+                  
+                  setStepMessage(`Đang tính toán theo Mai Hoa...`);
+
+                  maiHoaTimeout1 = setTimeout(() => {
+                      setDisplayLines(finalLines);
+                      setStepMessage('Quẻ đã thành.');
+                  }, 1800);
+                  
+                  maiHoaTimeout2 = setTimeout(() => {
+                      onComplete(finalLines);
+                  }, 4000);
+
+              } else { // Cỏ Thi
+                  const accumulatedLines: LineValue[] = [];
+                  let currentLineIndex = 0;
+                  coThiInterval = setInterval(() => {
+                      if (currentLineIndex >= 6) {
+                          clearInterval(coThiInterval);
+                          onComplete(accumulatedLines);
                           return;
                       }
 
-                      if (method === 'Cỏ Thi') {
-                          setStepMessage(`Đang tính hào ${currentLines.length + 1}/6 bằng Cỏ Thi...`);
-                          // Simplified simulation of Yarrow Stalk method
-                          const rand = Math.random();
-                          let lineVal: LineValue;
-                          if (rand < 0.125) lineVal = 6; // Yin moving
-                          else if (rand < 0.375) lineVal = 8; // Yin stable
-                          else if (rand < 0.875) lineVal = 7; // Yang stable
-                          else lineVal = 9; // Yang moving
-                          currentLines.push(lineVal);
-                      } else { // Mai Hoa
-                          setStepMessage(`Đang tính hào ${currentLines.length + 1}/6 bằng Mai Hoa...`);
-                          // Simplified simulation of Plum Blossom method
-                          const rand = Math.random();
-                          let lineVal: LineValue;
-                          // Mai Hoa typically only has one moving line, but for this simulation we generate 6 lines
-                          if (rand < 0.1) lineVal = (Math.random() > 0.5) ? 6 : 9;
-                          else lineVal = (Math.random() > 0.5) ? 7 : 8;
-                          currentLines.push(lineVal);
-                      }
-                      setLines([...currentLines]);
-                  }, 1500);
+                      setIsAnimating(true);
+                      setStepMessage(`Đang gieo hào ${currentLineIndex + 1}/6...`);
+                      
+                      let newLineVal: LineValue;
+                      const rand = Math.random();
+                      if (rand < 0.125) newLineVal = 6;
+                      else if (rand < 0.375) newLineVal = 8;
+                      else if (rand < 0.875) newLineVal = 7;
+                      else newLineVal = 9;
+                      accumulatedLines.push(newLineVal);
+                      
+                      setDisplayLines(prev => [...prev, newLineVal]);
+
+                      setTimeout(() => setIsAnimating(false), 800);
+                      
+                      currentLineIndex++;
+                  }, 2000);
+              }
+
+              // Comprehensive cleanup function to prevent state conflicts
+              return () => {
+                  clearTimeout(maiHoaTimeout1);
+                  clearTimeout(maiHoaTimeout2);
+                  clearInterval(coThiInterval);
               };
-              cast();
           }, [method, onComplete]);
 
           return (
-              <div className="casting-screen main-content">
-                  <h2>Đang gieo quẻ theo phương pháp {method}</h2>
-                  <p>Xin hãy giữ tâm thanh tịnh và tập trung vào câu hỏi...</p>
-                  <div className="casting-animation">
-                      <div className="hexagram">
-                          {lines.map((val, i) => (
-                              <Line key={i} type={getLineType(val)} isMoving={isMovingLine(val)} />
-                          ))}
+              <div className="main-content">
+                  <div className="casting-screen-header">
+                      <h2>Đang gieo quẻ theo phương pháp {method}</h2>
+                      <p>Xin hãy giữ tâm thanh tịnh và tập trung vào câu hỏi...</p>
+                  </div>
+                  <div className="casting-screen">
+                      <div className="casting-animation-container">
+                          {method === 'Cỏ Thi' ? (
+                              <YarrowStalkAnimation active={isAnimating} />
+                          ) : (
+                              <PlumBlossomAnimation calculation={maiHoaCalc} />
+                          )}
                       </div>
-                      <div className="step" style={{marginTop: "2rem"}}>{stepMessage}</div>
+                      <div className="casting-result-container">
+                          <div className="hexagram">
+                              {displayLines.map((val, i) => (
+                                  <Line key={i} type={getLineTypeFromValue(val)} isMoving={isMovingLine(val)} />
+                              ))}
+                          </div>
+                          <div className="step">{stepMessage}</div>
+                      </div>
                   </div>
               </div>
           );
       };
 
       const ResultScreen: React.FC<{ result: CastingResult, aiInterpretation: AiInterpretation | null, isLoading: boolean, error: string | null, onReset: () => void }> = ({ result, aiInterpretation, isLoading, error, onReset }) => {
-          const primaryLines = result.lines.map(getLineType);
+          const primaryLines = result.lines.map(getLineTypeFromValue);
           const transformedLines = useMemo(() => {
               if (!result.transformedHexagram) return null;
               return primaryLines.map((type, i) => result.movingLinesIndices.includes(i) ? (type === 'yang' ? 'yin' : 'yang') : type);
