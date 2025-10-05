@@ -78,7 +78,7 @@ body {
   display: flex;
   flex-direction: column;
   position: relative;
-  overflow: hidden;
+  overflow-y: auto;
   transition: background-color 0.3s, border-color 0.3s;
 }
 
@@ -276,6 +276,11 @@ textarea {
   margin-top: 1rem;
   font-size: 1.1rem;
 }
+.hexagram-number {
+  font-size: 0.9rem;
+  color: var(--secondary-color);
+  margin-top: 0.25rem;
+}
 .hexagram-name {
     font-size: 1.5rem;
     font-weight: bold;
@@ -336,9 +341,6 @@ textarea {
   border-top: 1px solid var(--border-color);
   padding-top: 1.5rem;
   text-align: left;
-  max-height: 50vh;
-  overflow-y: auto;
-  padding-right: 1rem;
 }
 
 .ai-interpretation h3 {
@@ -452,8 +454,31 @@ textarea {
         gap: 1rem;
     }
     .hexagrams-display {
-        flex-direction: column;
-        gap: 2rem;
+        flex-direction: row;
+        gap: 1.5rem;
+        align-items: flex-start;
+    }
+    .hexagram-container {
+        flex: 0 1 auto;
+    }
+    .hexagram-name {
+        font-size: 1.1rem;
+    }
+    .hexagram {
+        gap: 0.5rem;
+    }
+    .line {
+        height: 8px;
+    }
+    .line-yang, .line-yin {
+        width: 70px;
+    }
+    .line-yin::before, .line-yin::after {
+       width: 30px;
+    }
+    .dynamic-badge {
+       left: 75px;
+       font-size: 0.7rem;
     }
     .result-screen {
         padding-bottom: 2rem;

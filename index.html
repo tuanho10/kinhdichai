@@ -36,7 +36,7 @@
 
       // --- TYPES AND CONSTANTS ---
 
-      const API_KEY = "AIzaSyBuftqK-NbV-LtSyiuFvkrUO21ixP-Z--Y";
+      const API_KEY = (typeof process !== 'undefined' && process.env) ? process.env.API_KEY : undefined;
 
       type LineValue = 6 | 7 | 8 | 9;
       type Trigram = 'Càn' | 'Khảm' | 'Cấn' | 'Chấn' | 'Tốn' | 'Ly' | 'Khôn' | 'Đoài';
@@ -372,12 +372,14 @@
                           <div className="hexagram-name">{result.primaryHexagram.hanTu} {result.primaryHexagram.vietnameseName}</div>
                           <Hexagram lines={primaryLines} movingIndices={result.movingLinesIndices} />
                           <div className="hexagram-label">Quẻ Chính</div>
+                          <div className="hexagram-number">(Số {result.primaryHexagram.number})</div>
                       </div>
                       {result.transformedHexagram && transformedLines && (
                           <div className="hexagram-container">
                               <div className="hexagram-name">{result.transformedHexagram.hanTu} {result.transformedHexagram.vietnameseName}</div>
                               <Hexagram lines={transformedLines} movingIndices={[]} />
                               <div className="hexagram-label">Quẻ Biến</div>
+                              <div className="hexagram-number">(Số {result.transformedHexagram.number})</div>
                           </div>
                       )}
                   </div>
