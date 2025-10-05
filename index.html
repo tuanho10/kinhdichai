@@ -22,9 +22,12 @@
   }
 }
 </script>
+  <!-- Load Babel to transpile JSX/TSX in the browser -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 </head>
   <body>
     <div id="root"></div>
-    <script type="module" src="index.tsx"></script>
+    <!-- Changed type to "text/babel" and added presets for React/TypeScript -->
+    <script type="text/babel" data-presets="react,typescript" src="index.tsx"></script>
   </body>
 </html>
