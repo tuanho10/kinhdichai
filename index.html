@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="vi">
   <head>
@@ -30,13 +31,13 @@
     
     <!-- Application source code is placed in a data script block to be processed manually -->
     <script type="text/tsx-app" id="app-source">
-      import React, { useState, useEffect, useMemo } from 'react';
+      import React, { useState, useEffect, useMemo, useCallback } from 'react';
       import { createRoot } from 'react-dom/client';
       import { GoogleGenAI, Type } from "@google/genai";
 
       // --- TYPES AND CONSTANTS ---
 
-      const API_KEY = "AIzaSyBuftqK-NbV-LtSyiuFvkrUO21ixP-Z--Y";
+      const API_KEY = (typeof process !== 'undefined' && process.env) ? process.env.API_KEY : undefined;
 
       type LineValue = 6 | 7 | 8 | 9;
       type LineType = 'yang' | 'yin';
@@ -354,8 +355,8 @@
       
       const YarrowStalkAnimation: React.FC<{ active: boolean }> = ({ active }) => {
         const stalks = useMemo(() => {
-            return Array.from({ length: 50 }).map((_, i) => {
-                const xPos = (i - 24.5) * 4.5; // Spread them out horizontally
+            return Array.from({ length: 17 }).map((_, i) => {
+                const xPos = (i - 8) * 6.5; // (length-1)/2, multiplier adjusted for spread
                 const randomRotate = (Math.random() - 0.5) * 15; // Give a slight, natural tilt
                 const randomY = Math.random() * 5; // Slight vertical variation
                 return {
@@ -370,7 +371,8 @@
                     <div
                         key={i}
                         className="yarrow-stalk"
-                        style={style}
+                        // FIX: Cast style to React.CSSProperties to allow for custom CSS properties.
+                        style={style as React.CSSProperties}
                     />
                 ))}
             </div>
@@ -401,9 +403,16 @@
           const [maiHoaCalc, setMaiHoaCalc] = useState<MaiHoaCalculation | null>(null);
 
           useEffect(() => {
-              let maiHoaTimeout1: number;
-              let maiHoaTimeout2: number;
-              let coThiInterval: number;
+              // Reset state to prevent bugs when switching methods
+              setDisplayLines([]);
+              setStepMessage('');
+              setIsAnimating(false);
+              setMaiHoaCalc(null);
+
+              // FIX: Use correct timer ID types for compatibility with Node.js and browser environments.
+              let maiHoaTimeout1: ReturnType<typeof setTimeout>;
+              let maiHoaTimeout2: ReturnType<typeof setTimeout>;
+              let coThiInterval: ReturnType<typeof setInterval>;
 
               if (method === 'Mai Hoa') {
                   const upperNum = Math.floor(Math.random() * 100) + 1;
@@ -534,7 +543,12 @@
                       )}
                   </div>
                   <div className="ai-interpretation">
-                      {isLoading && <div className="spinner" aria-label="Đang tải luận giải"></div>}
+                      {isLoading && (
+                          <div style={{ textAlign: "center" }}>
+                            <div className="spinner" aria-label="Đang tải luận giải"></div>
+                            <p>Vui lòng chờ AI luận giải...</p>
+                          </div>
+                      )}
                       {error && <p style={{ color: '#e57373' }}>{error}</p>}
                       {aiInterpretation && (
                           <>
@@ -626,7 +640,7 @@
               setScreen('casting');
           };
           
-          const handleCastingComplete = async (lines: LineValue[]) => {
+          const handleCastingComplete = useCallback(async (lines: LineValue[]) => {
               const { primaryHexagram, transformedHexagram, movingLinesIndices } = processLines(lines);
 
               if (!primaryHexagram) {
@@ -660,16 +674,19 @@
                       date: new Date().toISOString(),
                       aiInterpretation: interpretation,
                   };
-                  const updatedHistory = [newHistoryEntry, ...history];
-                  setHistory(updatedHistory);
-                  localStorage.setItem('kinhDichHistory', JSON.stringify(updatedHistory));
+                  
+                  setHistory(prevHistory => {
+                      const updatedHistory = [newHistoryEntry, ...prevHistory];
+                      localStorage.setItem('kinhDichHistory', JSON.stringify(updatedHistory));
+                      return updatedHistory;
+                  });
 
               } catch (e: any) {
                   setError(e.message || "Lỗi không xác định.");
               } finally {
                   setIsLoadingAi(false);
               }
-          };
+          }, [question, method]);
           
           const handleReset = () => {
               setScreen('home');
